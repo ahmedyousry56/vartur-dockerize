@@ -147,7 +147,7 @@ services:
     networks:
       - vartur
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3009/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3009/docs || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -177,7 +177,7 @@ services:
     networks:
       - vartur
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5555/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5555/docs || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -209,7 +209,7 @@ services:
     networks:
       - vartur
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:1111/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:1111/docs || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -251,6 +251,37 @@ services:
         condition: service_healthy
       vcrm-api:
         condition: service_healthy
+      vcrm-account-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  vcrm-account-queues:
+    build:
+      context: ../vcrm_queues
+      dockerfile: ../docker/apps/vcrm-queues.Dockerfile
+    container_name: vcrm-account-queues
+    env_file: 
+      - ./env/vcrm-queues.env
+    command: ["npm", "run", "start:account"]
+    networks:
+      - vartur
+    depends_on:
+      vcrm-account-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  vcrm-admin-queues:
+    build:
+      context: ../vcrm_queues
+      dockerfile: ./apps/vcrm-queues.Dockerfile
+    container_name: vcrm-account-queues
+    env_file: 
+      - ./env/vcrm-queues.env
+    command:
+      - npm run start:account
+    networks:
+      - vartur
+    depends_on:
       vcrm-account-api:
         condition: service_healthy
     restart: unless-stopped

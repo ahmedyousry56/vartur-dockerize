@@ -1,4 +1,4 @@
-# Vartur Docker Services
+# Vartur Docker Setup
 
 This directory contains the Docker Compose configuration for Vartur's development infrastructure.
 
@@ -34,6 +34,8 @@ docker compose down -v
 
 ## Services
 
+### Infrastructure
+
 | Service         | Port(s)       | Credentials                          |
 |-----------------|---------------|--------------------------------------|
 | MySQL           | 3306          | `root` / `mysql`                     |
@@ -42,6 +44,23 @@ docker compose down -v
 | RabbitMQ        | 5672, 15672   | `guest` / `guest`                    |
 | Elasticsearch   | 9200, 9300    | No auth                              |
 | Kibana          | 5601          | No auth                              |
+
+### Applications
+
+| Service              | Port  | Description                          |
+|----------------------|-------|--------------------------------------|
+| vcrm-api             | 3009  | Public API (Fastify)                 |
+| vcrm-account-api     | 5555  | Account/Auth API (Fastify + Prisma)  |
+| vcrm-admin-api       | 4444  | Admin API (Fastify + Prisma)         |
+| vcrm-cache           | -     | Cache service (NestJS)               |
+| vcrm-notification    | -     | Notification service (NestJS)        |
+| vcrm-import          | -     | Data import service (NestJS)         |
+| vcrm-customers       | -     | Customer service (NestJS)            |
+| vcrm-queues-account  | -     | RabbitMQ consumer (account queue)    |
+| vcrm-queues-admin    | -     | RabbitMQ consumer (admin queue)      |
+| vcrm-queues-api      | -     | RabbitMQ consumer (api queue)        |
+| vcrm-clean-cache     | -     | Cache cleanup service                |
+| ilan-web             | 3001  | Frontend (Nuxt 3)                    |
 
 ## Connection Examples
 
@@ -163,3 +182,65 @@ docker compose logs -f
 # Specific service
 docker compose logs -f mysql
 ```
+
+## Running Applications
+
+### Start All (Infrastructure + Apps)
+
+```bash
+docker compose up -d
+```
+
+### Start Infrastructure Only
+
+```bash
+docker compose up -d mysql mongo redis rabbitmq elasticsearch kibana
+```
+
+### Start Specific Apps
+
+```bash
+# Start backend APIs
+docker compose up -d vcrm-api vcrm-account-api vcrm-admin-api
+
+# Start frontend
+docker compose up -d ilan-web vartur-desktop
+
+# Start all queue consumers
+docker compose up -d vcrm-account-queues vcrm-admin-queues
+```
+
+### Run Database Migrations
+
+```bash
+docker compose --profile migration up vcrm-migration
+```
+
+## Frontend API URLs
+
+The frontend (`ilan-web`) is configured to communicate with backend services:
+
+| Environment Variable              | Value (Internal)                      | Value (Browser)                |
+|-----------------------------------|---------------------------------------|--------------------------------|
+| `API_BASE`                        | `http://vcrm-api:3009/v1`             | -                              |
+| `VCRM_ACCOUNT_API_URL`            | `http://vcrm-account-api:5555/v1`     | -                              |
+| `NUXT_PUBLIC_API_BASE`            | -                                     | `http://localhost:3009/v1`     |
+| `NUXT_PUBLIC_VCRM_ACCOUNT_API_URL`| -                                     | `http://localhost:5555/v1`     |
+
+- **Internal URLs**: Used for server-side requests (container-to-container)
+- **Browser URLs**: Used for client-side requests (browser to host machine)
+
+## Access Points
+
+After starting all services:
+
+| Service              | URL                           |
+|----------------------|-------------------------------|
+| vartur-desktop       | http://localhost:3366         |
+| ilan-tr-desktop      | http://localhost:6644         |
+| Public API           | http://localhost:3009         |
+| Account API          | http://localhost:5555         |
+| Admin API            | http://localhost:1111         |
+| RabbitMQ Management  | http://localhost:15672        |
+| Kibana               | http://localhost:5601         |
+| Elasticsearch        | http://localhost:9200         |
